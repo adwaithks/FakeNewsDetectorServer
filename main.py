@@ -28,8 +28,11 @@ class Output:
 		self.prediction = prediction
 		self.status = status
 
+@app.get("/status")
+async def status():
+	return "200 OK"
 
-@app.get("/predict")
+@app.get("/api/predict")
 async def root(request: Request):
 	try:
 		news = request.query_params['news']
