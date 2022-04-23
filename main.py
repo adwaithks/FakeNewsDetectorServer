@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 origins = ["*"]
-loaded_model = pickle.load(open('./model.pkl', 'rb'))
+prediction_model = pickle.load(open('./model.pkl', 'rb'))
 tfidf_v = pickle.load(open('./tfidf.pkl', 'rb'))
 stopwords = nltk.corpus.stopwords.words('english')
 lemmatizer = WordNetLemmatizer()
@@ -52,7 +52,7 @@ def fake_news_det(news):
 			corpus.append(lemmatizer.lemmatize(y))     
 	input_data = [' '.join(corpus)]
 	vectorized_input_data = tfidf_v.transform(input_data)
-	prediction = loaded_model.predict(vectorized_input_data)
+	prediction = prediction_model.predict(vectorized_input_data)
 	if prediction[0] == 1:
 		return Output(news, "Fake", "200 OK")
 	else:
