@@ -1,9 +1,12 @@
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 import re
 import pickle
 import nltk
 from nltk import WordNetLemmatizer
 from fastapi.middleware.cors import CORSMiddleware
+import motor.motor_asyncio
+from datetime import date
 
 
 app = FastAPI()
@@ -21,6 +24,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MONGO_URI = "mongodb+srv://ananthu:ananthu@cluster0.pzvdb.mongodb.net/newsset?retryWrites=true&w=majority"
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+database = client.newsset
+news_collection = database.get_collection("news")
 
 class Output:
 	def __init__(self, news='Please provide a headline', prediction='None', status='500 Internal Server Error'):
@@ -40,6 +47,37 @@ async def root(request: Request):
 	except Exception:
 		return Output()
 
+@app.get("/api/predictednews")
+async def root(request: Request):
+	allNews = []
+	async for news in news_collection.find():
+		allNews.append(newsHelper(news))
+	return allNews
+
+
+@app.post("/api/sendnews")
+async def root(request: Request):
+	jsonBody = await request.json()
+	prediction = fake_news_det(jsonBody["title"])
+	today = date.today()
+	datePosted = today.strftime("%B %d, %Y")
+	data = {
+		"title": jsonBody["title"],
+		"source": jsonBody["source"],
+		"date_posted": datePosted,
+		"prediction": prediction.prediction
+	}
+	await news_collection.insert_one(jsonable_encoder(data))
+	return data
+
+def newsHelper(news) -> dict:
+    return {
+        "id": str(news["_id"]),
+        "title": news["title"],
+        "source": news["source"],
+        "date_posted": news["date_posted"],
+        "prediction": news["prediction"],
+    }
 
 def fake_news_det(news):
 	review = news
